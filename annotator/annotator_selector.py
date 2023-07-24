@@ -6,7 +6,7 @@ from sklearn.metrics import accuracy_score, f1_score
 import numpy as np
 
 from annotator.models import AnnotatorModel
-from utils import get_weighted_labels, get_majority_labels
+from utils import get_weighted_labels, get_majority_labels, get_max_labels
 
 class AnnotatorSelector:
     def __init__(self, n_features, n_annotators, device, log_dir="logs", report_to_tensorboard=False):
@@ -119,7 +119,10 @@ class AnnotatorSelector:
                 optimizer.step()
 
                 y_true += list(y.numpy())
-                y_predicted, _ = get_weighted_labels(annotator_labels.numpy(), output.detach().cpu().numpy(), annotator_mask.cpu().numpy())
+                if args["labeling_type"] == "weighted":
+                    y_predicted, _ = get_weighted_labels(annotator_labels.numpy(), output.detach().cpu().numpy(), annotator_mask.cpu().numpy())
+                elif args["labeling_type"] == "max":
+                    y_predicted, _ = get_max_labels(annotator_labels.numpy(), output.detach().cpu().numpy(), annotator_mask.cpu().numpy())
                 y_pred += y_predicted
 
 
@@ -134,7 +137,7 @@ class AnnotatorSelector:
                     self.write_to_tensorboard(epoch=epoch, data={"loss": losses[-1], "accuracy": accuracy[-1], "f1": f1[-1]}, type=f"{train_phase}/train")
                 if evaluate:
                     self.eval(epoch=epoch, eval_x=eval_x, eval_annotator_labels=eval_annotator_labels, eval_annotator_weights=eval_annotator_weights, eval_y=eval_y, eval_annotator_mask=eval_annotator_mask, 
-                              plot_to_tensorboard=plot_to_tensorboard, eval_phase=train_phase)
+                              labeling_type=args["labeling_type"], plot_to_tensorboard=plot_to_tensorboard, eval_phase=train_phase)
         self.writer.flush()
 
         return losses[-1], accuracy[-1], f1[-1]
@@ -148,6 +151,7 @@ class AnnotatorSelector:
             eval_annotator_weights=None, 
             eval_y=None, 
             eval_annotator_mask=None,
+            labeling_type="max",
             plot_to_tensorboard=True,
             eval_phase="boot"
     ):
@@ -183,7 +187,10 @@ class AnnotatorSelector:
             eval_loss.append(loss.item())
 
             y_true += list(y.numpy())
-            y_predicted, _ = get_weighted_labels(annotator_labels.numpy(), output.detach().cpu().numpy(), annotator_mask.cpu().numpy())
+            if labeling_type == "weighted":
+                y_predicted, _ = get_weighted_labels(annotator_labels.numpy(), output.detach().cpu().numpy(), annotator_mask.cpu().numpy())
+            elif labeling_type == "max":
+                y_predicted, _ = get_max_labels(annotator_labels.numpy(), output.detach().cpu().numpy(), annotator_mask.cpu().numpy())
             y_pred += y_predicted
 
         

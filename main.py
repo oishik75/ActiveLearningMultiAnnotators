@@ -26,12 +26,13 @@ def main():
     # Misc
     parser.add_argument("--log_dir", default="logs/medical/")
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--labeling_type", default="max")
     parser.add_argument("--exp_name", default=None)
 
     args = parser.parse_args()
 
     if args.exp_name is None:
-        args.exp_name = f"{args.classifier_name}_{args.instance_strategy}_budget{args.budget}_bootsize{args.boot_size}_activeepochs{args.active_n_epochs}"
+        args.exp_name = f"{args.classifier_name}_{args.instance_strategy}_labeling{args.labeling_type}_budget{args.budget}_bootsize{args.boot_size}_activeepochs{args.active_n_epochs}"
 
     suffix="" # to store suffix for exp_name passed by user if any
     while os.path.isdir(args.log_dir + args.exp_name + suffix):

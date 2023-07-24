@@ -43,3 +43,22 @@ def get_majority_labels(labels, mask=None):
         majority_labels.append(majority_label)
 
     return majority_labels
+
+def get_max_labels(labels, weights, mask=None):
+    max_labels = []
+    max_weights = []
+
+    if mask is None: # If mask is None, make mask to be all 1s
+        mask = np.ones_like(labels)
+    # If mask not of type bool, convert to bool
+    if  mask.dtype != bool:
+        mask = mask.astype(bool)
+
+    weights = weights * mask
+
+    for i in range(len(labels)):
+        max_idx = np.argmax(weights[i])
+        max_labels.append(labels[i][max_idx])
+        max_weights.append(weights[i][max_idx])
+
+    return max_labels, max_weights

@@ -9,7 +9,7 @@ import torch
 from annotator.annotator_selector import AnnotatorSelector
 from instance_selector import InstanceSelector
 from classifier.classifier import ClassifierModel
-from utils import get_weighted_labels
+from utils import get_weighted_labels, get_max_labels
 
 class MultiAnnotatorActiveLearner:
     def __init__(self, data, args):
@@ -65,6 +65,7 @@ class MultiAnnotatorActiveLearner:
         training_args["lr"] = self.args.boot_lr
         training_args["n_epochs"] = self.args.boot_n_epochs
         training_args["log_epochs"] = self.args.boot_log_epochs
+        training_args["labeling_type"] = self.args.labeling_type
         # Train annotator model on boot data with all 5 annotators
         self.annotator_selector.train(args=training_args, train_x=self.boot_x, train_annotator_labels=self.boot_annotator_labels, train_y=self.boot_y,
                                       eval_x=self.test_x, eval_annotator_labels=self.test_annotator_labels, eval_y=self.test_y)
@@ -85,6 +86,7 @@ class MultiAnnotatorActiveLearner:
         training_args["lr"] = self.args.active_lr
         training_args["n_epochs"] = self.args.active_n_epochs
         training_args["log_epochs"] = self.args.active_log_epochs
+        training_args["labeling_type"] = self.args.labeling_type
         # Begin active learning cycle
         for b in tqdm(range(budget)):
             # Select instance from active list
@@ -159,7 +161,10 @@ class MultiAnnotatorActiveLearner:
             classifier_training_annotator_mask = np.concatenate((annotator_mask[queried_instances], np.ones_like(self.boot_annotator_labels)))
             classifier_training_annotator_labels = np.concatenate((self.active_annotator_labels[queried_instances], self.boot_annotator_labels))
             # Calculate label for training the classification_model.
-            classifier_training_y, _ = get_weighted_labels(classifier_training_annotator_labels, classifier_training_annotator_model_weights, classifier_training_annotator_mask)
+            if self.args.labeling_type == "weighted":
+                classifier_training_y, _ = get_weighted_labels(classifier_training_annotator_labels, classifier_training_annotator_model_weights, classifier_training_annotator_mask)
+            elif self.args.labeling_type == "max":
+                classifier_training_y, _ = get_max_labels(classifier_training_annotator_labels, classifier_training_annotator_model_weights, classifier_training_annotator_mask)
             classifier_true_y = np.concatenate((self.active_y[queried_instances], self.boot_y))
 
             self.classifier.train(classifier_training_x, classifier_training_y)
