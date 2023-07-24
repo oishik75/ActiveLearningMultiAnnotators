@@ -4,6 +4,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score, f1_score
 import numpy as np
+from scipy.optimize import linprog
 
 from annotator.models import AnnotatorModel
 from utils import get_weighted_labels, get_majority_labels, get_max_labels
@@ -30,12 +31,51 @@ class AnnotatorSelector:
         for key in data:
             self.writer.add_scalar(f"annotator/{key}/{type}", data[key], epoch)
 
-    # Create annotator weight using agreement-disagreement between annotator labels using linear programming
-    def get_annotator_lp_weights(self, annotator_labels, annotator_mask):
+    # Annotator weights where majority agreeing annotators have weight 1 and rest 0
+    def get_annotator_majority_weights(self, annotator_labels, annotator_mask):
         annotator_weights = []
         majority_labels = get_majority_labels(annotator_labels, annotator_mask)
         for i in range(len(annotator_labels)):
             annotator_weights.append((annotator_labels[i] == majority_labels[i]).astype("int"))
+            # print(annotator_labels[i])
+            # print(annotator_mask[i])
+            # print(annotator_weights[-1])
+            # input()
+        return np.array(annotator_weights)
+    
+    # Create annotator weight using agreement-disagreement between annotator labels using linear programming
+    def get_annotator_lp_weights(self, annotator_labels, annotator_mask):
+        annotator_weights = []
+        n_annotators = len(annotator_labels[0])
+        for i in range(len(annotator_labels)):
+            if annotator_mask[i].sum() == 1: # If only a single annotator, its weight will be 1 and rest 0.
+                annotator_weights.append(annotator_mask[i].copy())
+                continue
+            A_eq = np.zeros((n_annotators, n_annotators))
+            b_eq = np.zeros(n_annotators)
+            for j in range(n_annotators):
+                if annotator_mask[i][j] == 0: # Annotator is not queried. So not part of equation
+                    continue
+                for k in range(n_annotators):
+                    if j == k:
+                        A_eq[j, k] = annotator_mask[i].sum() - 1
+                    elif annotator_mask[i][k] == 0:
+                        A_eq[j, k] = 0
+                    elif annotator_labels[i][j] == annotator_labels[i][k]:
+                        A_eq[j, k] = -1
+                    else:
+                        A_eq[j, k] = 1
+                        b_eq[j] += 1
+            c = np.ones(n_annotators) * -1
+            res = linprog(c, A_eq=A_eq, b_eq=b_eq, bounds=(0, 1))
+            if not res.success:
+                print("ERROR: Linear Programming not solvable")
+                print(annotator_labels[i])
+                print(annotator_mask[i])
+                print(A_eq)
+                print(b_eq)
+                exit()
+            annotator_weights.append(res.x)
         return np.array(annotator_weights)
     
     def get_annotator_model_weights(self, instances):
