@@ -20,7 +20,7 @@ class MultiAnnotatorActiveLearner:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         self.annotator_selector = AnnotatorSelector(n_features=self.n_features, n_annotators=self.n_annotators, device=self.device, log_dir=args.log_dir + args.exp_name, report_to_tensorboard=True)  
-        self.instance_selector = InstanceSelector(self.args.seed)
+        self.instance_selector = InstanceSelector(self.args.instance_strategy, self.args.seed)
         self.classifier = ClassifierModel(self.args.classifier_name, self.n_features, self.n_classes, device=self.device)
     
     def create_data_splits(self, data):
@@ -90,10 +90,9 @@ class MultiAnnotatorActiveLearner:
         # Begin active learning cycle
         for b in tqdm(range(budget)):
             # Select instance from active list
-            if self.args.instance_strategy == "random":
-                instance_idx = self.instance_selector.select_random_instances(active_instances)
-                if instance_idx not in queried_instances:
-                    queried_instances.append(instance_idx)
+            instance_idx = self.instance_selector.select_instances(self.active_x, self.classifier, active_instances)
+            if instance_idx not in queried_instances:
+                queried_instances.append(instance_idx)
 
             ### --------------------------------------------------- Logging steps --------------------------------------------------- ###
             if verbose:

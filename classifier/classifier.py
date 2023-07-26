@@ -52,6 +52,11 @@ class ClassifierModel:
             
         return accuracy, f1
     
+    # TODO: Need to code for neural network. Also need to check if svm works.
+    def get_probabilities(self, x):
+        if self.classifier_name in ["logistic_regression", "random_forest", "svm", "xgboost"]:
+            return self.model.predict_proba(x)
+    
     def train_neural_net_model(self, x, y):
         self.model = NeuralNetClassifier(n_features=self.n_features, n_classes=self.n_classes)
         self.model.to(self.device)

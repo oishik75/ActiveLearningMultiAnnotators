@@ -36,11 +36,11 @@ def main():
 
     suffix="" # to store suffix for exp_name passed by user if any
     while os.path.isdir(args.log_dir + args.exp_name + suffix):
-        choice = input(f"Log dir {args.log_dir + args.exp_name + suffix} already exists. Delete existing (y/n)?")
+        choice = input(f"Log dir {args.log_dir + args.exp_name + suffix} already exists. Delete existing (y/n)? ")
         if choice.lower() == "y":
             shutil.rmtree(args.log_dir + args.exp_name + suffix)
         elif choice.lower() == "n":
-            suffix = input("Enter suffix to be appended to exp_name")
+            suffix = input("Enter suffix to be appended to exp_name: ")
 
     args.exp_name = args.exp_name + suffix
 
