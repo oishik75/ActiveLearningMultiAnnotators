@@ -16,6 +16,8 @@ def main():
     parser.add_argument("--boot_lr", type=float, default=1e-5)
     parser.add_argument("--boot_n_epochs", type=int, default=1000)
     parser.add_argument("--boot_log_epochs", type=int, default=10)
+    parser.add_argument("--boot_strategy", default="random")
+    parser.add_argument("--samples_per_cluster", type=int, default=1)
     # Active Learning
     parser.add_argument("--active_lr", type=float, default=1e-5)
     parser.add_argument("--active_n_epochs", type=int, default=400)
@@ -23,6 +25,10 @@ def main():
     parser.add_argument("--budget", type=int, default=200)
     parser.add_argument("--instance_strategy", default="random")
     parser.add_argument("--classifier_name", default="svm") # logistic_regression neural_net xgboost
+    # Knowledgebase
+    parser.add_argument("--use_knowledgebase", type=bool, default=True)
+    parser.add_argument("--weight_threshold", type=float, default=0.7)
+    parser.add_argument("--similarity_threshold", type=float, default=0.95)
     # Misc
     parser.add_argument("--log_dir", default="logs/medical/")
     parser.add_argument("--seed", type=int, default=0)
@@ -32,7 +38,7 @@ def main():
     args = parser.parse_args()
 
     if args.exp_name is None:
-        args.exp_name = f"{args.classifier_name}_{args.instance_strategy}_labeling{args.labeling_type}_budget{args.budget}_bootsize{args.boot_size}_activeepochs{args.active_n_epochs}"
+        args.exp_name = f"{args.classifier_name}_{args.instance_strategy}_labeling{args.labeling_type}_budget{args.budget}_bootsize{args.boot_size}_activeepochs{args.active_n_epochs}_kb{args.use_knowledgebase}_bootstrategy{args.boot_strategy}"
 
     suffix="" # to store suffix for exp_name passed by user if any
     while os.path.isdir(args.log_dir + args.exp_name + suffix):

@@ -257,4 +257,4 @@ class AnnotatorSelector:
 
         annotator_idx = torch.argmax(annotator_weights).item()
 
-        return annotator_idx
+        return annotator_idx, annotator_weights[annotator_idx]
