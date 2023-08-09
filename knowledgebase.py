@@ -40,7 +40,7 @@ class AnnotatorKnowledgebase:
     def get_f1(self):
         if len(self.labels) == 0:
             return 0
-        return f1_score(self.true_labels, self.labels)
+        return f1_score(self.true_labels, self.labels, average='macro')
 
 
 

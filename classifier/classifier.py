@@ -39,16 +39,15 @@ class ClassifierModel:
         if self.classifier_name in ["logistic_regression", "random_forest", "svm", "xgboost"]:
             y_pred = self.model.predict(x)
             accuracy = accuracy_score(y, y_pred)
-            f1 = f1_score(y, y_pred)
+            f1 = f1_score(y, y_pred, average='macro')
 
         if self.classifier_name == "neural_net":
             x = torch.tensor(x).to(self.device).float()
             with torch.no_grad():
                 out = self.model(x).cpu().numpy()
             y_pred = np.argmax(out, axis=1)
-            print(y_pred)
             accuracy = accuracy_score(y, y_pred)
-            f1 = f1_score(y, y_pred)
+            f1 = f1_score(y, y_pred, average='macro')
             
         return accuracy, f1
     

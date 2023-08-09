@@ -78,7 +78,7 @@ class MultiAnnotatorActiveLearner:
         train_x, test_x, train_annotator_labels, test_annotator_labels, train_y, test_y = train_test_split(features, annotator_labels, ground_truth_label, test_size=self.args.test_size, random_state=self.args.seed)
 
         if self.args.boot_strategy == "random":
-            boot_x, active_x, boot_annotator_labels, active_annotator_labels, boot_y, active_y = train_test_split(train_x, train_annotator_labels, train_y, test_size=(1-self.args.boot_size), random_state=self.args.seed)
+            boot_x, active_x, boot_annotator_labels, active_annotator_labels, boot_y, active_y = train_test_split(train_x, train_annotator_labels, train_y, test_size=(1-self.args.boot_size), stratify=train_y, random_state=self.args.seed)
         elif self.args.boot_strategy == "cluster":
             boot_x, active_x, boot_annotator_labels, active_annotator_labels, boot_y, active_y = self.create_boot_split_clustering(train_x, train_annotator_labels, train_y)
 
@@ -114,12 +114,26 @@ class MultiAnnotatorActiveLearner:
     def boot_phase(self):
         training_args = {}
         training_args["lr"] = self.args.boot_lr
+        training_args["batch_size"] = self.args.boot_batch_size
         training_args["n_epochs"] = self.args.boot_n_epochs
         training_args["log_epochs"] = self.args.boot_log_epochs
         training_args["labeling_type"] = self.args.labeling_type
         # Train annotator model on boot data with all 5 annotators
         self.annotator_selector.train(args=training_args, train_x=self.boot_x, train_annotator_labels=self.boot_annotator_labels, train_y=self.boot_y,
                                       eval_x=self.test_x, eval_annotator_labels=self.test_annotator_labels, eval_y=self.test_y)
+        
+        # Train classifier model on boot data and annotation from annotators
+        classifier_training_annotator_model_weights = self.annotator_selector.get_annotator_model_weights(self.boot_x)
+        classifier_training_annotator_mask = np.ones_like(self.boot_annotator_labels)
+
+        if self.args.labeling_type == "weighted":
+            classifier_training_y, _ = get_weighted_labels(self.boot_annotator_labels, classifier_training_annotator_model_weights, classifier_training_annotator_mask)
+        elif self.args.labeling_type == "max":
+            classifier_training_y, _ = get_max_labels(self.boot_annotator_labels, classifier_training_annotator_model_weights, classifier_training_annotator_mask)
+
+        self.classifier.train(self.boot_x, classifier_training_y)
+        classifier_accuracy, classifier_f1 = self.classifier.eval(self.test_x, self.test_y)
+        print(f"Boot Phase Classifier accuracy score: {classifier_accuracy} \t Classifier F1 score: {classifier_f1}")
 
         if self.args.use_knowledgebase:
             self.create_knowledgebase()
@@ -145,6 +159,7 @@ class MultiAnnotatorActiveLearner:
         # Annotator training arguments
         training_args = {}
         training_args["lr"] = self.args.active_lr
+        training_args["batch_size"] = self.args.active_batch_size
         training_args["n_epochs"] = self.args.active_n_epochs
         training_args["log_epochs"] = self.args.active_log_epochs
         training_args["labeling_type"] = self.args.labeling_type
@@ -255,11 +270,11 @@ class MultiAnnotatorActiveLearner:
 
             ### --------------------------------------------------- Logging steps --------------------------------------------------- ###
             if verbose:
-                print(f"Label accuracy score: {accuracy_score(classifier_true_y, classifier_training_y)} \t Label f1 score: {f1_score(classifier_true_y, classifier_training_y)}")
+                print(f"Label accuracy score: {accuracy_score(classifier_true_y, classifier_training_y)} \t Label f1 score: {f1_score(classifier_true_y, classifier_training_y, average='macro')}")
                 print(f"Classifier accuracy score: {classifier_accuracy} \t Classifier F1 score: {classifier_f1}")
             if report_to_tensorboard:
                 writer.add_scalar("ActiveLearning/Label/accuracy", accuracy_score(classifier_true_y, classifier_training_y), active_learning_cycle)
-                writer.add_scalar("ActiveLearning/Label/f1", f1_score(classifier_true_y, classifier_training_y), active_learning_cycle)
+                writer.add_scalar("ActiveLearning/Label/f1", f1_score(classifier_true_y, classifier_training_y, average='macro'), active_learning_cycle)
                 writer.add_scalar("ActiveLearning/Classifier/accuracy", classifier_accuracy, active_learning_cycle)
                 writer.add_scalar("ActiveLearning/Classifier/f1", classifier_f1, active_learning_cycle)
                 if n_kb_labels > 0:

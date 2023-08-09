@@ -115,7 +115,7 @@ class AnnotatorSelector:
             train_annotator_weights = self.get_annotator_lp_weights(train_annotator_labels, train_annotator_mask)
 
         train_dataset = TensorDataset(torch.tensor(train_x).float(), torch.tensor(train_annotator_labels), torch.tensor(train_annotator_weights), torch.tensor(train_annotator_mask), torch.tensor(train_y))
-        train_dataloader = DataLoader(train_dataset, batch_size=8, shuffle=True) # Need to change batch_size to args.batch_size
+        train_dataloader = DataLoader(train_dataset, batch_size=args["batch_size"], shuffle=True) # Need to change batch_size to args.batch_size
         
         if eval_x is not None and eval_annotator_labels is not None:
             evaluate = True
@@ -167,7 +167,7 @@ class AnnotatorSelector:
 
 
             accuracy.append(accuracy_score(y_true=y_true, y_pred=y_pred))
-            f1.append(f1_score(y_true=y_true, y_pred=y_pred))
+            f1.append(f1_score(y_true=y_true, y_pred=y_pred, average='macro'))
 
             losses.append(sum(batch_loss) / len(batch_loss))
             # print(f"Epoch: {epoch+1} \t Loss: {losses[-1]} \t Accuracy: {accuracy[-1]} \t F1: {f1[-1]}")
@@ -237,7 +237,7 @@ class AnnotatorSelector:
         self.model.train()
         
         accuracy = accuracy_score(y_true=y_true, y_pred=y_pred)
-        f1 = f1_score(y_true=y_true, y_pred=y_pred)
+        f1 = f1_score(y_true=y_true, y_pred=y_pred, average='macro')
         eval_loss = sum(eval_loss) / len(eval_loss)
         tqdm.write(f"Eval Loss: {eval_loss} \t Eval Accuracy: {accuracy} \t Eval F1: {f1}")
 
