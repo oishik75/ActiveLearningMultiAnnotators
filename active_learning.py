@@ -141,8 +141,8 @@ class MultiAnnotatorActiveLearner:
     def create_knowledgebase(self):
         for idx, instance in enumerate(self.boot_x):
             annotator, weight = self.annotator_selector.get_annotator(instance, np.zeros(self.n_annotators)) # Passing zero as mask since get_annotator only looks at annotators with mask=0
-            if weight > self.args.weight_threshold:
-                self.knowledgebase.add_instance_to_knowledgebase(instance, self.boot_annotator_labels[idx][annotator], self.boot_y[idx], annotator)
+            # if weight > self.args.weight_threshold:
+            self.knowledgebase.add_instance_to_knowledgebase(instance, self.boot_annotator_labels[idx][annotator], self.boot_y[idx], annotator)
 
         self.knowledgebase.print_knowledgebase_info()
 
@@ -205,7 +205,15 @@ class MultiAnnotatorActiveLearner:
                         n_kb_labels_correct += int(label==self.active_y[instance_idx])
             
             if self.args.use_knowledgebase and (not label_obtained_from_kb) and annotator_weight > self.args.weight_threshold:
-                self.knowledgebase.add_instance_to_knowledgebase(self.active_x[instance_idx], self.active_annotator_labels[instance_idx][annotator_idx], self.active_y[instance_idx], annotator_idx)
+                # If instance already present in KB then add instance to new annotator if weight of new annotator is greater tham curremt KB annotator 
+                kb_annotator_idx =  self.knowledgebase.check_instance_in_knowledgebase(self.active_x[instance_idx])
+                if kb_annotator_idx is not None:
+                    weights = self.annotator_selector.get_annotator_model_weights(self.active_x[instance_idx])
+                    if weights[kb_annotator_idx] < weights[annotator_idx]:
+                        self.knowledgebase.add_instance_to_knowledgebase(self.active_x[instance_idx], self.active_annotator_labels[instance_idx][annotator_idx], self.active_y[instance_idx], annotator_idx)
+                else:
+                    self.knowledgebase.add_instance_to_knowledgebase(self.active_x[instance_idx], self.active_annotator_labels[instance_idx][annotator_idx], self.active_y[instance_idx], annotator_idx)
+                
             
             ### --------------------------------------------------- Logging steps --------------------------------------------------- ###
             if verbose:
@@ -226,13 +234,13 @@ class MultiAnnotatorActiveLearner:
             if annotator_mask[instance_idx].sum() == 1:
                 train_annotator_model = False
 
-            # If 2 or more annotators are queried for an instace, we use it for training the annotator model.
-            # So whenever annotator is queried 2 times, add it to the annotator training list.
-            if annotator_mask[instance_idx].sum() == 2:
+            # If 3 or more annotators are queried for an instace, we use it for training the annotator model.
+            # So whenever annotator is queried 3 times, add it to the annotator training list.
+            if annotator_mask[instance_idx].sum() == 3:
                 annotator_training_instances.append(instance_idx)
 
             # Train annotator
-            if train_annotator_model and not label_obtained_from_kb:
+            if train_annotator_model and not label_obtained_from_kb and (active_learning_cycle+1)%self.args.train_after_every==0:
                 annotator_loss, annotator_accuracy, annotator_f1 = self.annotator_selector.train(
                     args = training_args, 
                     train_x = np.concatenate((self.active_x[annotator_training_instances], self.boot_x)), 

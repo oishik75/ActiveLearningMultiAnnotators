@@ -15,6 +15,8 @@ class InstanceSelector:
         entropies = entropy(probabilities, axis=1)
         masked_entropies = np.zeros_like(entropies)
         masked_entropies[indices] = entropies[indices]
+        if masked_entropies.sum() == 0: # If all entropies are 0, pick a random index from indices
+            return random.choice(indices)
         selected_index = np.argmax(masked_entropies)
         if selected_index not in indices:
             print("Error!!! Something went wrong in entropy instance selection.")

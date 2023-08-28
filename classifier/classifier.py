@@ -1,5 +1,5 @@
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier
 from sklearn.svm import SVC
 from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, f1_score
@@ -21,6 +21,8 @@ class ClassifierModel:
             self.model = LogisticRegression(max_iter=8000)
         elif self.classifier_name == "random_forest":
             self.model = RandomForestClassifier(random_state=0)
+        elif self.classifier_name == "extra_trees":
+            self.model = ExtraTreesClassifier(random_state=0)
         elif self.classifier_name == "svm":
             self.model = SVC()
         elif self.classifier_name == "xgboost":
@@ -30,13 +32,13 @@ class ClassifierModel:
             self.model.to(self.device)
     
     def train(self, x, y):
-        if self.classifier_name in ["logistic_regression", "random_forest", "svm", "xgboost"]:
+        if self.classifier_name in ["logistic_regression", "random_forest", "extra_trees", "svm", "xgboost"]:
             self.model.fit(x, y)
         elif self.classifier_name == "neural_net":
             self.train_neural_net_model(x, y)
 
     def eval(self, x, y):
-        if self.classifier_name in ["logistic_regression", "random_forest", "svm", "xgboost"]:
+        if self.classifier_name in ["logistic_regression", "random_forest", "extra_trees", "svm", "xgboost"]:
             y_pred = self.model.predict(x)
             accuracy = accuracy_score(y, y_pred)
             f1 = f1_score(y, y_pred, average='macro')
@@ -53,7 +55,7 @@ class ClassifierModel:
     
     # TODO: Need to code for neural network. Also need to check if svm works.
     def get_probabilities(self, x):
-        if self.classifier_name in ["logistic_regression", "random_forest", "svm", "xgboost"]:
+        if self.classifier_name in ["logistic_regression", "random_forest", "extra_trees", "svm", "xgboost"]:
             return self.model.predict_proba(x)
     
     def train_neural_net_model(self, x, y):

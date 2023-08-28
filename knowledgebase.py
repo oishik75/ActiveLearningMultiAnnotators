@@ -13,8 +13,17 @@ class AnnotatorKnowledgebase:
         self.instances.append(instance)
         self.labels.append(label)
         self.true_labels.append(true_label) # Used to calculate accuracy of knowledgebase. Not used for getting labels
-        self.similar_instances[len(self.instances)-1] = []
+        self.similar_instances[str(instance)] = []
 
+    def remove_instance(self, instance):
+        idx = next((i for i, val in enumerate(self.instances) if np.all(val == instance)), -1)
+        if idx == -1:
+            print("Error!!! Instance not found. Exiting...")
+            exit()
+        self.instances.pop(idx)
+        self.labels.pop(idx)
+        self.true_labels.pop(idx)
+    
     def get_max_similarity(self, instance):
         if len(self.instances) == 0:
             return -1, np.array([0])
@@ -28,7 +37,7 @@ class AnnotatorKnowledgebase:
 
         label = self.labels[idx]
         if add_instance_to_similar_instances:
-            self.similar_instances[idx].append(instance)
+            self.similar_instances[str(self.instances[idx])].append(instance)
 
         return label
     
@@ -48,9 +57,20 @@ class Knowledgebase:
     def __init__(self, n_annotators, similarity_threshold=0.95) -> None:
         self.annotator_knowledgebases = [AnnotatorKnowledgebase() for _ in range(n_annotators)]
         self.similarity_threshold = similarity_threshold
+        self.instance2annotator = {}
 
     def add_instance_to_knowledgebase(self, instance, label, true_label, annotator):
+        if str(instance) in self.instance2annotator:
+            current_annotator = self.instance2annotator[str(instance)]
+            self.annotator_knowledgebases[current_annotator].remove_instance(instance)
         self.annotator_knowledgebases[annotator].add_instance(instance, label, true_label)
+        self.instance2annotator[str(instance)] = annotator
+        
+    def check_instance_in_knowledgebase(self, instance):
+        if str(instance) in self.instance2annotator:
+            return self.instance2annotator[str(instance)]
+        else:
+            return None
 
     def get_label(self, instance):
         similarities = [] 

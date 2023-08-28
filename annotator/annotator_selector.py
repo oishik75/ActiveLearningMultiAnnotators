@@ -23,7 +23,7 @@ class AnnotatorSelector:
             self.writer = None
 
     def initialize_model(self):
-        torch.manual_seed(0)
+        torch.manual_seed(1)
         return AnnotatorModel(n_features=self.n_features, n_annotators=self.n_annotators).to(self.device)
     
 
@@ -67,7 +67,9 @@ class AnnotatorSelector:
                         A_eq[j, k] = 1
                         b_eq[j] += 1
             c = np.ones(n_annotators) * -1
-            res = linprog(c, A_eq=A_eq, b_eq=b_eq, bounds=(0, 1))
+            A_ub = np.concatenate((np.eye(n_annotators), -1*np.eye(n_annotators)))
+            b_ub = np.concatenate((np.ones(n_annotators), np.zeros(n_annotators)))
+            res = linprog(c, A_eq=A_eq, b_eq=b_eq, A_ub=A_ub, b_ub=b_ub)
             if not res.success:
                 print("ERROR: Linear Programming not solvable")
                 print(annotator_labels[i])
@@ -112,7 +114,7 @@ class AnnotatorSelector:
             train_annotator_mask = np.ones_like(train_annotator_labels)
         
         if train_annotator_weights is None:
-            train_annotator_weights = self.get_annotator_lp_weights(train_annotator_labels, train_annotator_mask)
+            train_annotator_weights = self.get_annotator_majority_weights(train_annotator_labels, train_annotator_mask)
 
         train_dataset = TensorDataset(torch.tensor(train_x).float(), torch.tensor(train_annotator_labels), torch.tensor(train_annotator_weights), torch.tensor(train_annotator_mask), torch.tensor(train_y))
         train_dataloader = DataLoader(train_dataset, batch_size=args["batch_size"], shuffle=True) # Need to change batch_size to args.batch_size
@@ -199,7 +201,7 @@ class AnnotatorSelector:
             eval_annotator_mask = np.ones_like(eval_annotator_labels)
         
         if eval_annotator_weights is None:
-            eval_annotator_weights = self.get_annotator_lp_weights(eval_annotator_labels, eval_annotator_mask)
+            eval_annotator_weights = self.get_annotator_majority_weights(eval_annotator_labels, eval_annotator_mask)
 
         eval_dataset = TensorDataset(torch.tensor(eval_x).float(), torch.tensor(eval_annotator_labels), torch.tensor(eval_annotator_weights), torch.tensor(eval_annotator_mask), torch.tensor(eval_y))
         eval_dataloader = DataLoader(eval_dataset, batch_size=8, shuffle=False)

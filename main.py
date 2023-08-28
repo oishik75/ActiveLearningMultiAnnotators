@@ -11,29 +11,30 @@ def main():
     # Data
     parser.add_argument("--data_path", default="data/medical.csv")
     parser.add_argument("--boot_size", type=float, default=0.1)
-    parser.add_argument("--test_size", type=float, default=0.3)
+    parser.add_argument("--test_size", type=float, default=0.4)
     # Boot
-    parser.add_argument("--boot_lr", type=float, default=1e-5)
+    parser.add_argument("--boot_lr", type=float, default=1e-4)
     parser.add_argument("--boot_batch_size", type=int, default=4)
     parser.add_argument("--boot_n_epochs", type=int, default=1000)
-    parser.add_argument("--boot_log_epochs", type=int, default=10)
+    parser.add_argument("--boot_log_epochs", type=int, default=100)
     parser.add_argument("--boot_strategy", default="random")
     parser.add_argument("--samples_per_cluster", type=int, default=1)
     # Active Learning
-    parser.add_argument("--active_lr", type=float, default=1e-5)
+    parser.add_argument("--active_lr", type=float, default=1e-4)
     parser.add_argument("--active_batch_size", type=int, default=16)
-    parser.add_argument("--active_n_epochs", type=int, default=400)
-    parser.add_argument("--active_log_epochs", type=int, default=1000)
-    parser.add_argument("--budget", type=int, default=200)
-    parser.add_argument("--instance_strategy", default="random")
-    parser.add_argument("--classifier_name", default="svm") # logistic_regression neural_net xgboost
+    parser.add_argument("--active_n_epochs", type=int, default=1000)
+    parser.add_argument("--active_log_epochs", type=int, default=10000)
+    parser.add_argument("--budget", type=int, default=0.2)
+    parser.add_argument("--train_after_every", type=int, default=20)
+    parser.add_argument("--instance_strategy", default="entropy")
+    parser.add_argument("--classifier_name", default="random_forest") # logistic_regression neural_net xgboost extra_trees
     # Knowledgebase
     parser.add_argument("--use_knowledgebase", type=bool, default=True)
     parser.add_argument("--weight_threshold", type=float, default=0.7)
     parser.add_argument("--similarity_threshold", type=float, default=0.95)
     # Misc
     parser.add_argument("--log_dir", default="logs/medical/")
-    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--labeling_type", default="max")
     parser.add_argument("--exp_name", default=None)
 
